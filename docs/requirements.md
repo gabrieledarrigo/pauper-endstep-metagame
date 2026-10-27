@@ -1,6 +1,6 @@
 # Endstep Pauper Metagame Viewer: Requirements
 
-Status: Draft v18 · Date: 2026-10-23
+Status: Draft v19 · Date: 2026-10-27
 
 Scope: five pages.
 
@@ -36,9 +36,9 @@ The application is read-only. It stores only three display preferences: the them
 |---|---|
 | Format coverage | Pauper only |
 | Data access | Vercel functions: the proxy, the matchup function, the staples function, the sample cards function for the sample list's cards and prices, and the deck page's HTML function. They work around CORS, see §4.1 |
-| Cache policy | 5 minutes at the edge, with stale-while-revalidate |
+| Cache policy | An hour at the edge, then a day of stale-while-revalidate. During an Endstep outage, the last good answer for up to 7 days, §4.11 |
 | Front end | React 19 and TypeScript, with Vite as the build tool. See NFR-1 |
-| Data fetching | TanStack Query 5. A response stays fresh for five minutes. See §4.8 |
+| Data fetching | TanStack Query 5. A response stays fresh for an hour. See §4.8 |
 | Page state | The address holds the window and the view state. A link opens a page in its default view. The one exception is the deck page's link to its deck in the matchup table. See §4.5 |
 | Styling | Hand-written CSS in cascade layers, with BEM and one stylesheet for each component. No framework. A light theme and a dark theme, FR-13. See NFR-11 |
 | Charting | Recharts 3.x from npm |
@@ -212,7 +212,7 @@ On 2026-09-20, the project tested public CORS proxies and rejected them. All six
 - The endpoint path reaches the function as the `path` query parameter, through the rewrite in `vercel.json`. For example, `/api/metagame/Pauper/decks` becomes `/api/metagame?path=Pauper/decks`.
 - The proxy accepts `GET` and `HEAD`. An `OPTIONS` request gets 204, as the answer to the CORS preflight. Every other method returns 405.
 - The proxy allow-lists the upstream path prefix. So nobody can use the function as an open proxy to arbitrary hosts.
-- The proxy sets `Cache-Control` by status. A success gets `public, s-maxage=300, stale-while-revalidate=600`. Then the edge serves repeat requests without a call to Endstep. A 429 gets `public, s-maxage=10`. Any other error gets `no-store`. The fallback of the art lookup is the one exception, below.
+- The proxy sets `Cache-Control` by status. A success gets the data lifetime of §4.11. Then the edge serves repeat requests without a call to Endstep. A 429 gets `public, s-maxage=10`. Any other error gets `no-store`. The fallback of the art lookup is the one exception, below.
 - The proxy passes upstream non-2xx status codes through unchanged. Then the client can tell a rate limit from a server error.
 - The proxy sends no cookies, credentials or client identifying headers upstream.
 
@@ -220,7 +220,7 @@ On 2026-09-20, the project tested public CORS proxies and rejected them. All six
 
 For a successful `GET` of a deck list or a deck detail, the proxy looks up the key cards on Scryfall, §3.4. It adds `art.imageUrl` to each deck that it resolves. A `HEAD` request gets no lookup.
 
-The lookup has a one-second bound. If the lookup fails, times out or meets a 429, the response goes out without the addresses that it did not resolve. That response gets `s-maxage=60` in place of the usual five minutes, so the art returns soon for the next reader. A reader who already holds that response keeps it for the five minutes of the client, §4.8. Meanwhile, that reader sees the art from Endstep. A lookup never fails the response, and the proxy never retries a lookup within the same response.
+The lookup has a one-second bound. If the lookup fails, times out or meets a 429, the response goes out without the addresses that it did not resolve. That response is fresh for 60 seconds in place of the usual hour, §4.11, so the art returns soon for the next reader. A reader who already holds that response keeps it for the hour of the client, §4.8. Meanwhile, that reader sees the art from Endstep. A lookup never fails the response, and the proxy never retries a lookup within the same response.
 
 The Scryfall request carries `User-Agent: PauperEndstepMetagame/1.0 (+https://github.com/gabrieledarrigo/pauper-endstep-metagame)`, `Accept: application/json` and `Content-Type: application/json`. The `User-Agent` is the only identifying header that the functions send upstream.
 
@@ -266,7 +266,7 @@ The format is always Pauper, and the population is always `rated`.
 
 - One cold build costs 25 upstream calls.
 - `Cache-Control` follows the rules of the proxy by status, with one difference. The function holds a 429 for 60 seconds, the length of the Endstep rate limit. So the next reader does not retry a rate-limited build within that time.
-- The function holds a success for 5 minutes. Any other error gets `no-store`.
+- The function holds a success for the data lifetime of §4.11. Any other error gets `no-store`.
 - The edge holds one entry for each window, in each region that served one.
 - If any upstream call fails, the whole request fails. The function returns no partial matrix. An upstream 429 returns 429. Anything else returns 502.
 - Each upstream call has the same 8 second timeout as the proxy.
@@ -339,7 +339,7 @@ The Deployment Checks of the project require the `ci` job from NFR-1. Vercel sti
 The pages read the API through TanStack Query 5. The project chose it over SWR on the criteria in NFR-2. It is the most used, and it has the two behaviours that this application needs. These are a time that a response stays fresh, and the cancellation of a request that a page no longer needs. On 2026-10-09, TanStack Query had 67 million weekly downloads against 18.6 million for SWR. Minified and gzipped, it was 10.3 KB against 6.7 KB.
 
 - The app has one query client. Each request is a query, keyed by what it reads, such as `["decks", window]` or `["deck", slug, window]`.
-- A response stays fresh for five minutes, the `s-maxage` of the edge cache, §4.3. Within that time, a page renders it from memory, with no request and no loading state. After that time, the page shows it and refetches it in the background. Responses stay in memory for the rest of the visit. So this holds, however long the reader was away.
+- A response stays fresh for an hour, the `s-maxage` of the edge cache, §4.11. Within that time, a page renders it from memory, with no request and no loading state. After that time, the page shows it and refetches it in the background. Responses stay in memory for the rest of the visit. So this holds, however long the reader was away.
 - A section shows its data whenever it has some. If a refetch fails, the data stays on the screen. The error panel appears only when there is nothing to show, FR-9.
 - Requests run whether or not the browser reports itself online. So a reader without a connection sees the network error, not a page that waits.
 - Nothing refetches when the browser regains focus, NFR-4.
@@ -419,8 +419,8 @@ The matchups row of the deck page loads on its own, FR-11. It dims itself and ma
 - After a 500 or a final timeout, the other tables finish, so a 429 among them still shows. The function returns 429 if any call returned 429.
 - We measured the collection request for 50 names at 2 seconds. With a one-second bound, it ran out of time in 3 of 4 builds. That is why the bound is 3 seconds.
 - With the 3 second bound, a 30d main deck build took 1.8 seconds on 2026-10-20. Its collection request took 1 second and found art for all 50 cards.
-- Card usage changes slowly. So the function holds a success for 30 minutes, with 30 more of stale-while-revalidate.
-- If the art lookup fell back, the function holds the success for five minutes, with `public, s-maxage=300, stale-while-revalidate=600`. A rebuild costs up to 121 Endstep calls.
+- The function holds a success for the data lifetime of §4.11.
+- If the art lookup fell back, the success is fresh for five minutes, §4.11. A rebuild costs up to 121 Endstep calls.
 - The function holds a 429 for 60 seconds. Any other error gets `no-store`. These two rules are the same as in the matchup function.
 - If any Endstep call fails, the whole request fails. A timeout or a network error that a second request recovers is not a failure. It returns 429 for an upstream 429, and 502 for any other failure. A failed art lookup never fails the request.
 - The function uses the same method rules and CORS headers as the proxy, §4.3.
@@ -474,12 +474,41 @@ The matchups row of the deck page loads on its own, FR-11. It dims itself and ma
 
 #### Behaviour
 
-- The edge holds a success for an hour, with a day of stale-while-revalidate, because Scryfall updates prices once a day.
-- If any lookup failed or ran out of time, the edge holds the response for five minutes.
+- The edge holds a success for the data lifetime of §4.11. Scryfall updates prices once a day, so an hour is fresh enough.
+- If any lookup failed or ran out of time, the response is fresh for five minutes, §4.11.
 - If the deck detail answers 404, the function returns 404 with `no-store`.
 - A 429 returns 429, and the edge holds it for 60 seconds.
 - Any other failure returns 502 with `no-store`.
 - The User-Agent and the other rules of the proxy's Scryfall requests apply, §4.3. The function uses the same method rules and CORS headers as the proxy.
+
+### 4.11 How long an answer lives
+The owner chose data up to an hour old over an error during an outage of Endstep, open item 19. Endstep's windows include the current day, so the figures grow during the day. An hour keeps them close enough.
+
+Each function gives a complete success one data lifetime: `public, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800`.
+
+- For an hour, the edge serves the answer without a call to the function.
+- For a day after that, the edge serves the old answer at once and asks the function for a new one in the background.
+- When the function answers with an error, the edge serves the last good answer in its place, for up to 7 days. A 500 and a 502 of our functions count as errors. Vercel supports `stale-if-error` on every plan, the Hobby plan included.
+- The edge never stores an error. A 429 is the one exception: the edge holds it for 10 or 60 seconds, §4.3 and §4.4.
+
+An answer that misses part of its data stays fresh for a shorter time, so the missing part returns soon. It keeps the same `stale-if-error`.
+
+| Answer | Fresh for | Then stale-while-revalidate |
+|---|---|---|
+| A complete success of any function | 1 hour | 1 day |
+| The proxy or the deck page's function, when the art lookup fell back | 60 seconds | 10 minutes |
+| The staples function, when the art lookup fell back | 5 minutes | 10 minutes |
+| The sample cards function, when a lookup failed or ran out of time, or when the list is withheld | 5 minutes | 10 minutes |
+
+The app keeps an answer fresh for the same hour, §4.8. So a reader who stays on the site sends no request within the hour.
+
+The cache of the edge is best effort, so the rule does not cover every outage:
+
+- Each deployment starts with an empty cache, because the cache key holds the deployment.
+- The cache is kept for each region. A reader in a region that no one has used lately starts with nothing.
+- The edge can evict an answer that few readers ask for, such as the `1d` window or the page of a rare deck.
+
+In these cases a reader still sees the error during an outage.
 
 ---
 
@@ -731,7 +760,7 @@ Every page carries the data that browsers, search engines and chat apps read wit
   - It escapes every value that it writes into the HTML. It URL-encodes the card name in the image address.
   - If the call fails, or takes longer than two seconds, it returns the page with the site card. So a reader never waits long for it. Two seconds leave room for the proxy's own one-second art lookup.
   - It sends that fallback with `no-store`, so the edge never caches a slow moment.
-  - If the art of the deck resolved, the edge caches a preview for five minutes. If the art did not resolve, the edge caches it for one minute. This covers the fallback of the art lookup and a card that Scryfall does not find.
+  - If the art of the deck resolved, the edge holds the preview for the data lifetime of §4.11. If the art did not resolve, the preview is fresh for one minute. This covers the fallback of the art lookup and a card that Scryfall does not find.
   - The function sets that header itself. Vercel's edge strips `s-maxage` from the responses that it serves, the responses of the proxy included. If the function copies the header of the inner response, the edge does not cache the preview.
 - The page then loads as before. The function changes nothing that a reader sees.
 
@@ -1208,10 +1237,10 @@ The share line of the deck page in FR-11 is a `LineChart`. The matchup table in 
   - When the deck detail has a list to show, the deck page also requests `/api/sample-cards`, FR-19.
 - The size of the script payload is a reference, not a gate. Draft v2 shipped about 743 KB brotli, and 544 KB of that was Babel Standalone. The mechanical Vite port measured 156 KB of script and 2 KB of CSS, brotli, on 2026-10-03.
 - The page lazy-loads the card art with `loading="lazy"`. It sizes the art to prevent layout shift.
-- If back, forward or a window switch leads to data fetched in the last five minutes, the page renders that data from memory. It sends no request and shows no loading state, §4.8.
+- If back, forward or a window switch leads to data fetched in the last hour, the page renders that data from memory. It sends no request and shows no loading state, §4.8.
 
 ### NFR-4. Respecting the upstream service
-The application must not put meaningful load on Endstep. The edge cache (§4.3) means that repeat visits and repeated window switches cost no upstream requests. Within five minutes, the cache of the client (§4.8) sends no request. The client must follow these rules:
+The application must not put meaningful load on Endstep. The edge cache (§4.3) means that repeat visits and repeated window switches cost no upstream requests. Within an hour, the cache of the client (§4.8) sends no request. The client must follow these rules:
 
 - It must not poll.
 - It must not retry more than twice.
@@ -1400,3 +1429,4 @@ The functions log every response that fails. So the owner can see how often each
     - Vercel Web Analytics with the full address, query string included, NFR-9. This replaced "no analytics".
     - A log line for every failed response of the functions, with pino, NFR-12. No line for a success. The owner accepted the short log retention of the Hobby plan.
 18. The `1d` window. On 2026-10-23, Endstep answered the `1d` deck list with a 503 after 27 seconds. The proxy stops at 8 seconds and returns a 502, so `1d` fails on every page. A cold `7d`, `14d` or `season` call also passed 8 seconds once, then answered in under half a second. The owner reports it to the maintainer of Endstep. Nothing changes here until Endstep answers.
+19. ~~How fresh the data must be.~~ Settled on 2026-10-27. On 2026-10-27 Endstep answered every deck list with a 500, and the pages showed errors. The owner chose data up to an hour old, and the last good answer for up to 7 days during an outage, §4.11. The owner set aside a store of last good answers outside the cache, such as Vercel Blob, unless the cache proves too weak.
