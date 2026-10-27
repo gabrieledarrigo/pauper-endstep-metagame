@@ -14,8 +14,10 @@ const BARGAIN_ART =
   "https://cards.scryfall.io/art_crop/front/6/3/6338942d-d650-4571-8ec6-4d658792c53e.jpg?1783923877";
 const GUTTERSNIPE_ART =
   "https://cards.scryfall.io/art_crop/front/f/6/f6bb1ffc-2251-4655-b8f9-4c8047dd5d5f.jpg?1785497556";
-const FIVE_MINUTES = "public, s-maxage=300, stale-while-revalidate=600";
-const ONE_MINUTE = "public, s-maxage=60, stale-while-revalidate=600";
+const AN_HOUR =
+  "public, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800";
+const ONE_MINUTE =
+  "public, s-maxage=60, stale-while-revalidate=600, stale-if-error=604800";
 
 type Metagame = (typeof import("./metagame"))["default"];
 
@@ -233,7 +235,7 @@ describe("the metagame proxy", () => {
   });
 
   it.each([
-    [200, "public, s-maxage=300, stale-while-revalidate=600"],
+    [200, AN_HOUR],
     [429, "public, s-maxage=10"],
     [500, "no-store"],
   ])(
@@ -294,7 +296,7 @@ describe("the metagame proxy's card art", () => {
       body: '{"identifiers":[{"name":"Reckoner\'s Bargain"},{"name":"Guttersnipe"}]}',
       signal: expect.any(AbortSignal),
     });
-    expect(response.headers.get("cache-control")).toBe(FIVE_MINUTES);
+    expect(response.headers.get("cache-control")).toBe(AN_HOUR);
     expect(await artOf(response)).toEqual([
       BARGAIN_ART,
       GUTTERSNIPE_ART,
@@ -319,7 +321,7 @@ describe("the metagame proxy's card art", () => {
       const response = await metagame.fetch(request(DECKS));
 
       expect(scryfallNames(fetchMock)).toEqual([["Guttersnipe"]]);
-      expect(response.headers.get("cache-control")).toBe(FIVE_MINUTES);
+      expect(response.headers.get("cache-control")).toBe(AN_HOUR);
       expect(await artOf(response)).toEqual([undefined, GUTTERSNIPE_ART]);
     },
   );
@@ -339,7 +341,7 @@ describe("the metagame proxy's card art", () => {
       request("path=Pauper/decks/affinity-e93f5f74&window=30d"),
     );
 
-    expect(response.headers.get("cache-control")).toBe(FIVE_MINUTES);
+    expect(response.headers.get("cache-control")).toBe(AN_HOUR);
     expect(await artOf(response)).toEqual([BARGAIN_ART]);
   });
 
@@ -363,7 +365,7 @@ describe("the metagame proxy's card art", () => {
 
     const response = await metagame.fetch(request(DECKS));
 
-    expect(response.headers.get("cache-control")).toBe(FIVE_MINUTES);
+    expect(response.headers.get("cache-control")).toBe(AN_HOUR);
     expect(await artOf(response)).toEqual([undefined]);
   });
 

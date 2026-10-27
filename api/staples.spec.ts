@@ -12,8 +12,10 @@ const UPSTREAM = "https://endstep.cc/api/metagame/v1";
 const SCRYFALL = "https://api.scryfall.com/cards/collection";
 const COUNTERSPELL_ART =
   "https://cards.scryfall.io/art_crop/front/1/b/1b73577a-counterspell.jpg?1";
-const HALF_HOUR = "public, s-maxage=1800, stale-while-revalidate=1800";
-const FIVE_MINUTES = "public, s-maxage=300, stale-while-revalidate=600";
+const AN_HOUR =
+  "public, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800";
+const FIVE_MINUTES =
+  "public, s-maxage=300, stale-while-revalidate=600, stale-if-error=604800";
 const TABLE_TIMEOUT_MS = 20_000;
 
 type Staples = (typeof import("./staples"))["default"];
@@ -542,7 +544,7 @@ describe("the staples function's cards", () => {
 
     const response = await staples.fetch(request(MAIN_30D));
 
-    expect(response.headers.get("cache-control")).toBe(HALF_HOUR);
+    expect(response.headers.get("cache-control")).toBe(AN_HOUR);
     expect(await bodyOf(response)).toEqual({
       window: { from: "2026-09-21", to: "2026-10-21" },
       section: "main",
@@ -663,23 +665,23 @@ describe("the staples function's responses", () => {
   const decks = [deck("a", 0.2)];
   const pages = { a: [{ rows: [["Counterspell", 1, 4]] as Row[] }] };
 
-  it("caches a success for 30 minutes, with the CORS headers", async () => {
+  it("caches a success for an hour, with the CORS headers", async () => {
     endstep({ decks, pages, scryfall: collection("Counterspell") });
 
     const response = await staples.fetch(request(MAIN_30D));
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("cache-control")).toBe(HALF_HOUR);
+    expect(response.headers.get("cache-control")).toBe(AN_HOUR);
     expect(response.headers.get("access-control-allow-origin")).toBe("*");
     expect(response.headers.get("content-type")).toBe("application/json");
   });
 
-  it("keeps the 30 minutes when Scryfall does not find a card", async () => {
+  it("keeps the hour when Scryfall does not find a card", async () => {
     endstep({ decks, pages, scryfall: collection() });
 
     const response = await staples.fetch(request(MAIN_30D));
 
-    expect(response.headers.get("cache-control")).toBe(HALF_HOUR);
+    expect(response.headers.get("cache-control")).toBe(AN_HOUR);
     expect((await bodyOf(response)).cards[0].art).toBeNull();
   });
 
@@ -720,7 +722,7 @@ describe("the staples function's responses", () => {
     const response = await staples.fetch(request(MAIN_30D, "HEAD"));
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("cache-control")).toBe(HALF_HOUR);
+    expect(response.headers.get("cache-control")).toBe(AN_HOUR);
     expect(await response.text()).toBe("");
   });
 
@@ -934,7 +936,7 @@ describe("the staples function's second request", () => {
     const response = await settled(staples.fetch(request(MAIN_30D)));
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("cache-control")).toBe(HALF_HOUR);
+    expect(response.headers.get("cache-control")).toBe(AN_HOUR);
     expect(pagesOf(fetchMock, "a")).toEqual([1, 1]);
     expect(pagesOf(fetchMock, "b")).toEqual([1]);
     expect((await bodyOf(response)).cards.map(({ name }) => name)).toEqual([

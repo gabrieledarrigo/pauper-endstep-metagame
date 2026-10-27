@@ -2,8 +2,9 @@ import {
   BASE_HEADERS,
   BASICS,
   type CallLog,
-  EDGE_CACHE,
+  DATA_CACHE,
   type LogContext,
+  PARTIAL_CACHE,
   SCRYFALL_API,
   SCRYFALL_CDN,
   SCRYFALL_COLLECTION,
@@ -25,7 +26,6 @@ import {
 } from "../server/index.js";
 
 const RATE_LIMIT_SECONDS = 60;
-const SUCCESS_CACHE = "public, s-maxage=3600, stale-while-revalidate=86400";
 const MEMORY_MS = 3_600_000;
 const SEARCH = `${SCRYFALL_API}cards/search`;
 const COLLECTION_LIMIT = 75;
@@ -505,7 +505,7 @@ export default {
    * The query string must be exactly `?deck=` and a slug the proxy accepts, then `&window=` and one of the five windows. The function reads the deck detail through our own proxy, at the deck page's address, then asks Scryfall for the names it has not seen in the last hour: one collection request for the images, then searches in name order over every priced printing for the lowest price in tix, euros and dollars. A name's price is kept once its printings end, so a call cut short keeps the names it finished and the next call asks only for the rest. The six basic lands cost nothing and are not searched. Scryfall gets at most five requests per call, at least 500ms apart, within a shared bound of 6 seconds. GET and HEAD build the response. OPTIONS answers the CORS preflight with 204.
    *
    * @param req - The incoming request.
-   * @returns A Promise resolving to `{ cards: { [name]: { imageUrl, tix, eur, usd } } }`, cached for an hour with a day of stale-while-revalidate, or for five minutes when a lookup failed, ran out of time or was left out by the cap, or when the list is withheld. Otherwise a JSON error: 400 for any other query string, 405 for any other method, 404 for an unknown deck, 429 when the deck detail is rate limited, cached for 60 seconds, and 502 when the deck detail fails in any other way.
+   * @returns A Promise resolving to `{ cards: { [name]: { imageUrl, tix, eur, usd } } }`, with the data lifetime of §4.11, or fresh for five minutes when a lookup failed, ran out of time or was left out by the cap, or when the list is withheld. Otherwise a JSON error: 400 for any other query string, 405 for any other method, 404 for an unknown deck, 429 when the deck detail is rate limited, cached for 60 seconds, and 502 when the deck detail fails in any other way.
    * @see https://scryfall.com/docs/api/cards/collection
    * @see https://scryfall.com/docs/api/cards/search
    */
@@ -547,7 +547,7 @@ export default {
       }
 
       if (names === null) {
-        return jsonResponse(req.method, { cards: {} }, EDGE_CACHE);
+        return jsonResponse(req.method, { cards: {} }, PARTIAL_CACHE);
       }
 
       const budget = {
@@ -573,7 +573,7 @@ export default {
       return jsonResponse(
         req.method,
         { cards: Object.fromEntries(cards) },
-        complete ? SUCCESS_CACHE : EDGE_CACHE,
+        complete ? DATA_CACHE : PARTIAL_CACHE,
       );
     },
     (url) => ({ subject: url.searchParams.get("deck") }),

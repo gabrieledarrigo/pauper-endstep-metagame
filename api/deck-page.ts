@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   type CallLog,
-  EDGE_CACHE,
+  DATA_CACHE,
   type LogContext,
   PARTIAL_ART_CACHE,
   SEGMENT,
@@ -222,7 +222,7 @@ export default {
    *
    * `vercel.json` rewrites `/decks/:slug` here, with the slug in the `slug` query parameter and the link's own parameters beside it.
    * The function reads the built `index.html`, fetches the deck detail through our proxy, and writes the deck's title, description, art crop, canonical link and `og:url` into the head.
-   * The page is cached at the edge for five minutes when the deck's art resolved, and for one minute when it did not.
+   * The page gets the data lifetime of §4.11 when the deck's art resolved: an hour at the edge, a day of stale-while-revalidate and 7 days of stale-if-error. When the art did not resolve, it is fresh for one minute.
    * A rejected slug or window, a failed call, a call longer than two seconds, or a body it cannot read gets the page with the site card, sent with `no-store`.
    *
    * @param req - The incoming request.
@@ -263,7 +263,7 @@ export default {
       return pageResponse(
         req.method,
         preview(html, deck, target.window),
-        deck.art.imageUrl ? EDGE_CACHE : PARTIAL_ART_CACHE,
+        deck.art.imageUrl ? DATA_CACHE : PARTIAL_ART_CACHE,
       );
     },
     (url) => {

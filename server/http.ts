@@ -1,6 +1,9 @@
-export const EDGE_CACHE = "public, s-maxage=300, stale-while-revalidate=600";
+export const DATA_CACHE =
+  "public, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800";
+export const PARTIAL_CACHE =
+  "public, s-maxage=300, stale-while-revalidate=600, stale-if-error=604800";
 export const PARTIAL_ART_CACHE =
-  "public, s-maxage=60, stale-while-revalidate=600";
+  "public, s-maxage=60, stale-while-revalidate=600, stale-if-error=604800";
 
 export const BASE_HEADERS: Readonly<Record<string, string>> = {
   "Access-Control-Allow-Origin": "*",
@@ -82,11 +85,11 @@ export function methodResponse(req: Request): Response | null {
  *
  * @param status - The HTTP status of the response.
  * @param rateLimitSeconds - How long the edge holds a 429.
- * @returns Five minutes at the edge for a success with a body, `rateLimitSeconds` for a rate limit, and no caching otherwise.
+ * @returns The data lifetime of §4.11 for a success with a body: an hour at the edge, a day of stale-while-revalidate and 7 days of stale-if-error. `rateLimitSeconds` for a rate limit, and no caching otherwise.
  */
 export function cacheControl(status: number, rateLimitSeconds: number): string {
   if (status < 400 && !hasNoBody(status)) {
-    return EDGE_CACHE;
+    return DATA_CACHE;
   }
 
   if (status === 429) {

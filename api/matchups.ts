@@ -219,7 +219,7 @@ export default {
    * The query string must be exactly `?window=` and one of `1d`, `7d`, `14d`, `30d` or `season`. GET and HEAD build the matrix. OPTIONS answers the CORS preflight with 204.
    *
    * @param req - The incoming request.
-   * @returns A Promise resolving to the matrix, cached for five minutes, or to a JSON error: 400 for any other query string, 405 for any other method, 429 when Endstep rate limits a call, cached for 60 seconds, and 502 when any other call fails.
+   * @returns A Promise resolving to the matrix, with the data lifetime of §4.11, or to a JSON error: 400 for any other query string, 405 for any other method, 429 when Endstep rate limits a call, cached for 60 seconds, and 502 when any other call fails.
    * @see https://vercel.com/docs/functions/functions-api-reference#fetch-web-standard
    */
   fetch: logged(

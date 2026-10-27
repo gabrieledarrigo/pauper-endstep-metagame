@@ -25,8 +25,10 @@ const DESCRIPTION =
   "Which Pauper decks are played, how they perform, and how they do against each other.";
 const ART =
   "https://cards.scryfall.io/art_crop/front/6/3/6338942d-d650-4571-8ec6-4d658792c53e.jpg?1783923877";
-const FIVE_MINUTES = "public, s-maxage=300, stale-while-revalidate=600";
-const ONE_MINUTE = "public, s-maxage=60, stale-while-revalidate=600";
+const AN_HOUR =
+  "public, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800";
+const ONE_MINUTE =
+  "public, s-maxage=60, stale-while-revalidate=600, stale-if-error=604800";
 
 type DeckPage = (typeof import("./deck-page"))["default"];
 
@@ -369,18 +371,18 @@ describe("deck-page", () => {
     ]);
   });
 
-  it.each([FIVE_MINUTES, ONE_MINUTE, "public"])(
-    "caches a preview whose art resolved for five minutes, whatever the proxy sent (%s)",
+  it.each([AN_HOUR, ONE_MINUTE, "public"])(
+    "caches a preview whose art resolved for an hour, whatever the proxy sent (%s)",
     async (cache) => {
       proxy({ deck: deck() }, 200, cache);
 
       const response = await deckPage.fetch(request("slug=affinity-e93f5f74"));
 
-      expect(response.headers.get("cache-control")).toBe(FIVE_MINUTES);
+      expect(response.headers.get("cache-control")).toBe(AN_HOUR);
     },
   );
 
-  it.each([FIVE_MINUTES, ONE_MINUTE, "public"])(
+  it.each([AN_HOUR, ONE_MINUTE, "public"])(
     "caches a preview whose art fell back for one minute, whatever the proxy sent (%s)",
     async (cache) => {
       proxy({ deck: deck({ art: { cardName: "Thoughtcast" } }) }, 200, cache);
@@ -500,7 +502,7 @@ describe("deck-page", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("cache-control")).toBe(FIVE_MINUTES);
+    expect(response.headers.get("cache-control")).toBe(AN_HOUR);
     expect(response.body).toBeNull();
   });
 
