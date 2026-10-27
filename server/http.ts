@@ -1,6 +1,9 @@
-export const EDGE_CACHE = "public, s-maxage=300, stale-while-revalidate=600";
+export const DATA_CACHE =
+  "public, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800";
+export const PARTIAL_CACHE =
+  "public, s-maxage=300, stale-while-revalidate=600, stale-if-error=604800";
 export const PARTIAL_ART_CACHE =
-  "public, s-maxage=60, stale-while-revalidate=600";
+  "public, s-maxage=60, stale-while-revalidate=600, stale-if-error=604800";
 
 export const BASE_HEADERS: Readonly<Record<string, string>> = {
   "Access-Control-Allow-Origin": "*",
@@ -86,7 +89,7 @@ export function methodResponse(req: Request): Response | null {
  */
 export function cacheControl(status: number, rateLimitSeconds: number): string {
   if (status < 400 && !hasNoBody(status)) {
-    return EDGE_CACHE;
+    return DATA_CACHE;
   }
 
   if (status === 429) {

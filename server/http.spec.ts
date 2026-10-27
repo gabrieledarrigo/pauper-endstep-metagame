@@ -90,8 +90,14 @@ describe("methodResponse", () => {
 
 describe("cacheControl", () => {
   it.each([
-    [200, "public, s-maxage=300, stale-while-revalidate=600"],
-    [307, "public, s-maxage=300, stale-while-revalidate=600"],
+    [
+      200,
+      "public, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800",
+    ],
+    [
+      307,
+      "public, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800",
+    ],
     [204, "no-store"],
     [304, "no-store"],
     [404, "no-store"],
