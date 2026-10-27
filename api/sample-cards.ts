@@ -2,8 +2,9 @@ import {
   BASE_HEADERS,
   BASICS,
   type CallLog,
-  EDGE_CACHE,
+  DATA_CACHE,
   type LogContext,
+  PARTIAL_CACHE,
   SCRYFALL_API,
   SCRYFALL_CDN,
   SCRYFALL_COLLECTION,
@@ -25,7 +26,6 @@ import {
 } from "../server/index.js";
 
 const RATE_LIMIT_SECONDS = 60;
-const SUCCESS_CACHE = "public, s-maxage=3600, stale-while-revalidate=86400";
 const MEMORY_MS = 3_600_000;
 const SEARCH = `${SCRYFALL_API}cards/search`;
 const COLLECTION_LIMIT = 75;
@@ -547,7 +547,7 @@ export default {
       }
 
       if (names === null) {
-        return jsonResponse(req.method, { cards: {} }, EDGE_CACHE);
+        return jsonResponse(req.method, { cards: {} }, PARTIAL_CACHE);
       }
 
       const budget = {
@@ -573,7 +573,7 @@ export default {
       return jsonResponse(
         req.method,
         { cards: Object.fromEntries(cards) },
-        complete ? SUCCESS_CACHE : EDGE_CACHE,
+        complete ? DATA_CACHE : PARTIAL_CACHE,
       );
     },
     (url) => ({ subject: url.searchParams.get("deck") }),

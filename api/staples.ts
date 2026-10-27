@@ -2,8 +2,9 @@ import {
   BASE_HEADERS,
   BASICS,
   type CallLog,
-  EDGE_CACHE,
+  DATA_CACHE,
   type LogContext,
+  PARTIAL_CACHE,
   SNOW_COVERED_BASICS,
   WINDOWS,
   cacheControl,
@@ -20,7 +21,6 @@ import {
 
 const RATE_LIMIT_SECONDS = 60;
 const ART_BOUND_MS = 3000;
-const SUCCESS_CACHE = "public, s-maxage=1800, stale-while-revalidate=1800";
 const QUERY = /^\?window=([^&]*)&section=(main|side)$/;
 const TOP_DECKS = 24;
 const PAGE_SIZE = 50;
@@ -376,7 +376,7 @@ export default {
         {
           headers: {
             ...BASE_HEADERS,
-            "Cache-Control": built.complete ? SUCCESS_CACHE : EDGE_CACHE,
+            "Cache-Control": built.complete ? DATA_CACHE : PARTIAL_CACHE,
           },
           status: 200,
         },

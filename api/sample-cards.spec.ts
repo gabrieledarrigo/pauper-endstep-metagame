@@ -14,8 +14,10 @@ const DETAIL = `${ORIGIN}/api/metagame/Pauper/decks/affinity-e93f5f74?window=30d
 const COLLECTION = "https://api.scryfall.com/cards/collection";
 const SEARCH = "https://api.scryfall.com/cards/search";
 const CDN = "https://cards.scryfall.io/normal/front/";
-const AN_HOUR = "public, s-maxage=3600, stale-while-revalidate=86400";
-const FIVE_MINUTES = "public, s-maxage=300, stale-while-revalidate=600";
+const AN_HOUR =
+  "public, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800";
+const FIVE_MINUTES =
+  "public, s-maxage=300, stale-while-revalidate=600, stale-if-error=604800";
 const USER_AGENT =
   "PauperEndstepMetagame/1.0 (+https://github.com/gabrieledarrigo/pauper-endstep-metagame)";
 

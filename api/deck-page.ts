@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   type CallLog,
-  EDGE_CACHE,
+  DATA_CACHE,
   type LogContext,
   PARTIAL_ART_CACHE,
   SEGMENT,
@@ -263,7 +263,7 @@ export default {
       return pageResponse(
         req.method,
         preview(html, deck, target.window),
-        deck.art.imageUrl ? EDGE_CACHE : PARTIAL_ART_CACHE,
+        deck.art.imageUrl ? DATA_CACHE : PARTIAL_ART_CACHE,
       );
     },
     (url) => {

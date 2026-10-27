@@ -262,13 +262,13 @@ describe("the matchup function", () => {
     });
   });
 
-  it("caches a success for five minutes, with the CORS headers", async () => {
+  it("caches a success for an hour, with the CORS headers", async () => {
     endstep();
 
     const response = await matchups.fetch(request("?window=30d"));
 
     expect(response.headers.get("cache-control")).toBe(
-      "public, s-maxage=300, stale-while-revalidate=600",
+      "public, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800",
     );
     expect(response.headers.get("access-control-allow-origin")).toBe("*");
     expect(response.headers.get("content-type")).toBe("application/json");
@@ -342,7 +342,7 @@ describe("the matchup function", () => {
     expect(response.status).toBe(200);
     expect(response.body).toBeNull();
     expect(response.headers.get("cache-control")).toBe(
-      "public, s-maxage=300, stale-while-revalidate=600",
+      "public, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800",
     );
   });
 
