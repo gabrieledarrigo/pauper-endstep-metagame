@@ -126,6 +126,8 @@ The owner has decided these. Reviews do not raise them again. A change goes to t
 - The matchup function caches a 429 for 60 seconds, §4.4, even when a background revalidation could leave a stale matrix in its place.
 - The matchup table's spotlight fades the other cells to 25% opacity, below WCAG AA, NFR-6. The owner chose it over a fade that keeps the numbers at AA.
 - While a deck page loads, or after a server error, its canonical link and `og:url` name the address's path, FR-15. Only a loaded deck names its own slug. So an old slug can name itself for a moment, or after an error. The owner chose this over leaving the tags of the previous page in place.
+- The app keeps every answer fresh for an hour, §4.8 and §4.11, a partial one too. So placeholder art can stay for up to an hour within one visit, until a reload. The owner chose this over rules in the client for each kind of partial answer.
+- A 429 stays cached for 10 or 60 seconds, even though it can take the place of a good answer that `stale-if-error` would serve, §4.11. The owner chose this for now over `no-store`, which sends more calls to Endstep while it limits us.
 
 ## Project context
 
