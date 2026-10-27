@@ -21,10 +21,10 @@ function policy(): Policy {
 }
 
 describe("createQueryClient", () => {
-  it("keeps a response fresh for five minutes and in memory for the visit, and ignores window focus", () => {
+  it("keeps a response fresh for an hour and in memory for the visit, and ignores window focus", () => {
     const { queries } = policy();
 
-    expect(queries.staleTime).toBe(5 * 60 * 1000);
+    expect(queries.staleTime).toBe(60 * 60 * 1000);
     expect(queries.gcTime).toBe(Infinity);
     expect(queries.refetchOnWindowFocus).toBe(false);
   });
