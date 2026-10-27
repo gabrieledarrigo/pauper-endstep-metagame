@@ -2122,18 +2122,18 @@ This story covers the previews of the matchup table, What to play? and Staples, 
 
 **Date:** 2026-10-23. This milestone comes from Draft v18 of the requirements.
 
-This milestone has one design item, two user stories and two enablers, for FR-12, FR-15, FR-17, NFR-9 and NFR-12. On 2026-10-23 the owner chose a card for each page, a line under each page heading, Vercel Web Analytics with the full address, and a log line for each failed response. Open item 17 of the requirements lists these choices.
+This milestone has one design item, two user stories, two enablers and one hardening item, for FR-12, FR-15, FR-17, NFR-9, NFR-12 and §4.11. On 2026-10-23 the owner chose a card for each page, a line under each page heading, Vercel Web Analytics with the full address, and a log line for each failed response. Open item 17 of the requirements lists these choices. On 2026-10-27 the owner chose data up to an hour old, and the last good answer during an outage of Endstep, open item 19.
 
 | Wave | Items | Runs in parallel |
 |---|---|---|
 | 36 | #180, #181, #182, #187 | Yes, four ways |
-| 37 | #183 | No |
+| 37 | #183, #194 | Yes, two ways |
 
 ```
 #180 design ──► #183 a card for each page
 #181 a line under each heading
 #182 page views
-#187 a log line for each failure
+#187 a log line for each failure ──► #194 the last good answer
 ```
 
 ---
@@ -2234,7 +2234,7 @@ This enabler covers NFR-12. The owner sees the matchup table fail to load, and w
 - In production, a request for `/api/matchups?window=1d`, which fails today, shows its line in the runtime logs of Vercel. The line names the page, the window and the count of failed calls.
 - The specs pass.
 
-**Blocked by** nothing. **Blocks** nothing.
+**Blocked by** nothing. **Blocks** #194.
 
 ---
 
@@ -2266,6 +2266,31 @@ This story covers the page cards of FR-15 and §4.7.
 
 ---
 
+## #194 Keep the last good answer during an outage of Endstep
+
+This hardening item covers §4.11. On 2026-10-27 Endstep answered every deck list with a 500 for hours, and the logs of #187 showed it. The pages showed errors, though an answer from a few hours earlier would have served the readers.
+
+**Tasks**
+
+1. In `server/http.ts`, add the data lifetime of §4.11 for a complete success: `public, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800`.
+2. Give every complete success of the five functions the data lifetime. This replaces the 5 minutes of the proxy, the matchup function and the deck page's function, the 30 minutes of the staples function, and the own header of the sample cards function.
+3. Keep the shorter lifetimes of the table in §4.11 for an answer that misses part of its data. Add `stale-if-error=604800` to each of them.
+4. Leave the errors as they are: `no-store`, and 10 or 60 seconds for a 429.
+5. Set the time that a response stays fresh in the query client to one hour, §4.8.
+6. Update the specs that check the headers and the fresh time.
+7. Update §4.6 if the memory of the dev plugin needs a change for the longer lifetime.
+
+**Done when**
+
+- Each function sends the data lifetime with a complete success, and a spec checks it.
+- In production, a second request for the same deck list within the hour shows `x-vercel-cache: HIT`.
+- The app sends no second request for a page that it loaded less than an hour before.
+- The specs pass.
+
+**Blocked by** #187. **Blocks** nothing.
+
+---
+
 ## Notes on sequencing, milestone 9
 
 #180, #181 and #182 touch different files, so they run in parallel. #182 changes only the lockfile and a spec.
@@ -2273,5 +2298,7 @@ This story covers the page cards of FR-15 and §4.7.
 #187 changes every function and adds a dependency. It also changes `package-lock.json`, so it rebases after #182 or #182 after it. It runs beside the other items of wave 36.
 
 #181 and #183 both change the list in `server/head.ts` and the spec of the built files. #183 waits for #180, so #181 merges first. The second to merge rebases in a few lines.
+
+#194 changes the cache headers of every function, which #187 also touched. It waits for #187, which is merged. It runs beside #183.
 
 The `1d` window fails at Endstep, open item 18. The owner reports it. This milestone has no item for it.
