@@ -8,6 +8,7 @@
   .ranked-bars__scroll {
     position: relative;
     overflow-x: auto;
+    overflow-y: hidden;
   }
 
   .ranked-bars__frame {

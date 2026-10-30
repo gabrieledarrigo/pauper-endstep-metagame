@@ -8,6 +8,7 @@
   .share-chart__scroll {
     position: relative;
     overflow-x: auto;
+    overflow-y: hidden;
   }
 
   .share-chart__frame {
