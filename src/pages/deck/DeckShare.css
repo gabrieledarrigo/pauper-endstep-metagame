@@ -7,6 +7,7 @@
 
   .deck-share__scroll {
     overflow-x: auto;
+    overflow-y: hidden;
   }
 
   .deck-share__frame {
